@@ -1,0 +1,56 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL") // Should point to your MySQL DB
+}
+
+model User {
+  id              String    @id @default(cuid())  // Unique identifier for the user
+  name            String    // User's full name
+  email           String    @unique              // User's email (unique)
+  password        String    // Hashed password
+  role            Role      @default(EMPLOYEE)   // Role of the user (Admin, Manager, Employee)
+  leaves          Leave[]   // List of leave requests created by the user
+  approvedLeaves  Leave[]   @relation("Approver") // List of leave requests approved by the user
+  createdAt       DateTime  @default(now())       // Timestamp when the user is created
+  updatedAt       DateTime  @updatedAt            // Timestamp when the user is updated
+}
+
+model Leave {
+  id          String     @id @default(cuid())  // Unique leave identifier
+  user        User       @relation(fields: [userId], references: [id])  // User who requested the leave
+  userId      String     // Foreign key to the User
+  leaveType   LeaveType  // Type of leave (Sick, Casual, etc.)
+  startDate   DateTime   // Leave start date
+  endDate     DateTime   // Leave end date
+  reason      String?    // Reason for the leave (optional)
+  status      LeaveStatus @default(PENDING)  // Leave request status (Pending, Approved, etc.)
+  approverId  String?    // ID of the user who approves the leave (if any)
+  approvedBy  User?      @relation("Approver", fields: [approverId], references: [id]) // Approver of the leave request
+  createdAt   DateTime   @default(now())      // Timestamp when the leave request is created
+  updatedAt   DateTime   @updatedAt           // Timestamp when the leave request is updated
+}
+
+enum Role {
+  ADMIN     // Admin user has full access
+  MANAGER   // Manager user can approve/reject leaves
+  EMPLOYEE  // Regular employee can apply for leave
+}
+
+enum LeaveStatus {
+  PENDING   // Leave request is awaiting approval
+  APPROVED  // Leave request has been approved
+  REJECTED  // Leave request has been rejected
+  CANCELLED // Leave request was cancelled by the employee
+}
+
+enum LeaveType {
+  CASUAL    // Casual leave (e.g. personal time off)
+  SICK      // Sick leave (e.g. illness or medical condition)
+  UNPAID    // Unpaid leave (e.g. personal reasons)
+  MATERNITY // Maternity leave (e.g. for childbirth)
+  PATERNITY // Paternity leave (e.g. for fatherhood)
+}
